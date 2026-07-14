@@ -7,7 +7,6 @@ This script provides convenient ways to run different test categories.
 
 import sys
 import subprocess
-from pathlib import Path
 
 
 def run_tests(test_filter=None, verbose=True):

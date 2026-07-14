@@ -1,0 +1,13 @@
+timestamp,level,service,message
+2025-01-31T10:00:00Z,ERROR,api,Connection failed
+2025-01-31T11:00:00Z, error ,api, Connection failed 
+2025-01-31T12:00:00Z,Error,api,Connection failed
+invalid-timestamp-1,WARN,api,This row should be skipped
+2025-01-31T13:00:00Z,,db,Missing level
+2025-01-31T14:00:00Z,   ,db,Blank level
+2025-01-31T15:00:00+00:00,INFO,cache,Timestamp with timezone
+2025-01-31T16:00:00Z,DEBUG,api,"Message with, comma"
+not-valid,ERROR,api,Another skip
+2025-01-31T17:00:00Z,WARN,API,Service case differs
+2025-01-31T18:00:00Z,WARN,api,Message case differs
+2025-01-31T19:00:00Z,info,api,  Message  with  spaces  

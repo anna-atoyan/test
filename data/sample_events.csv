@@ -1,0 +1,6 @@
+timestamp,level,service,message
+2025-01-31T14:03:22Z,INFO,api,Started
+2025-01-31T14:05:22+00:00, info ,api,Started
+2025-01-31T14:06:00Z,,billing,Payment received
+not-a-timestamp,ERROR,api,Will be skipped due to bad timestamp
+2025-01-31T14:10:00Z,WARN,api,"Disk, almost full"

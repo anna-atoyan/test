@@ -1,0 +1,5 @@
+timestamp,level,service,message
+2025-01-31T14:03:22Z, error , api , Connection failed 
+2025-01-31T14:03:23Z,Error,API,Connection Failed
+2025-01-31T14:03:24Z,  ,api,No level
+2025-01-31T14:03:25Z,INFO,api,Message  with  spaces

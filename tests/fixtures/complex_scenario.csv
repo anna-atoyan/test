@@ -1,0 +1,9 @@
+timestamp,level,service,message
+2025-01-31T10:00:00Z, error ,  api  , Connection failed 
+2025-01-31T15:00:00Z,ERROR,api,Connection failed
+invalid-timestamp,WARN,api,Should be skipped
+2025-01-31T12:00:00Z,  ,db,Slow query
+2025-01-31T09:00:00Z,info,api,Started
+2025-01-31T20:00:00Z,Error,api,Connection failed
+another-bad-timestamp,ERROR,api,Also skipped
+2025-01-31T14:03:22+00:00,INFO,cache,Cache hit

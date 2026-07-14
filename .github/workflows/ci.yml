@@ -1,0 +1,198 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
+          fail_ci_if_error: false
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+
+  lint:
+    name: Lint and Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy
+      
+      - name: Run flake8
+        run: |
+          flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src/ tests/ --count --max-complexity=10 --max-line-length=88 --statistics
+        continue-on-error: true
+      
+      - name: Check code formatting with black
+        run: |
+          black --check src/ tests/
+        continue-on-error: true
+      
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only src/ tests/
+        continue-on-error: true
+      
+      - name: Type checking with mypy
+        run: |
+          mypy src/ --ignore-missing-imports
+        continue-on-error: true
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+      
+      - name: Run integration tests
+        run: |
+          pytest tests/ -v -m "integration" --tb=short
+        continue-on-error: true
+      
+      - name: Test CLI with sample data
+        run: |
+          python -m src.logsum --input data/sample_events.csv --output /tmp/test_output.csv
+          test -f /tmp/test_output.csv && echo "CLI test passed"
+        continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+      
+      - name: Run bandit security scanner
+        run: |
+          bandit -r src/ -f json -o bandit-report.json
+        continue-on-error: true
+      
+      - name: Check dependencies for vulnerabilities
+        run: |
+          pip freeze | safety check --stdin
+        continue-on-error: true
+      
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+        if: always()
+
+  build:
+    name: Build Distribution
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel setuptools
+      
+      - name: Build package
+        run: |
+          python -m build
+        continue-on-error: true
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+        if: always()
+        continue-on-error: true
+
+  notify:
+    name: Notification
+    runs-on: ubuntu-latest
+    needs: [test, lint, integration-test, security, build]
+    if: always()
+    
+    steps:
+      - name: Check workflow status
+        run: |
+          echo "Test job status: ${{ needs.test.result }}"
+          echo "Lint job status: ${{ needs.lint.result }}"
+          echo "Integration test status: ${{ needs.integration-test.result }}"
+          echo "Security scan status: ${{ needs.security.result }}"
+          echo "Build status: ${{ needs.build.result }}"

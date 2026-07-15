@@ -50,13 +50,24 @@
 
 ## CI Runs
 
-### Latest Run
-- **Commit**: `8ae57c7` - Trigger-CI-workflow-run (forced trigger)
+### Latest Run (Fixed!)
+- **Commit**: `3079a65` - Fix-setup.py-package-configuration
 - **Trigger**: Push to `feature/add-ci-workflow`
 - **Actions Link**: https://github.com/anna-atoyan/test/actions
 - **Direct Workflow Runs**: https://github.com/anna-atoyan/test/actions/workflows/ci.yml
-- **Commit Link**: https://github.com/anna-atoyan/test/commit/8ae57c7
+- **Commit Link**: https://github.com/anna-atoyan/test/commit/3079a65
 - **Status**: 🔄 Running now...
+
+### ⚠️ Previous Issue (19 Red Runs)
+**Root Cause**: The `setup.py` was using `find_packages()` which doesn't work correctly with the `src` layout without additional configuration.
+
+**Fix Applied**: Changed `setup.py` to explicitly specify:
+```python
+packages=["src"],
+package_dir={"src": "src"},
+```
+
+This ensures the `src` package is correctly installed and the entry point `src.logsum:main` can be found.
 
 ### How to Watch CI Run Live:
 1. Visit: https://github.com/anna-atoyan/test/actions

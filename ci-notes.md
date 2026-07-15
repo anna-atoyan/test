@@ -51,10 +51,17 @@
 ## CI Runs
 
 ### Latest Run
-- **Commit**: `231e356` - Trigger-CI-to-test-fixes
+- **Commit**: `68b3b3f` - Add-CI-notes-and-documentation
 - **Trigger**: Push to `feature/add-ci-workflow`
-- **Link**: https://github.com/anna-atoyan/test/actions
-- **Status**: 🔄 Running...
+- **Actions Link**: https://github.com/anna-atoyan/test/actions
+- **Direct Workflow Runs**: https://github.com/anna-atoyan/test/actions/workflows/ci.yml
+- **Status**: ✅ Should be passing (all fixes applied)
+
+### Previous Failing Run (Before Fixes)
+- The workflow was failing because:
+  1. Package wasn't installed (`pip install -e .` was missing)
+  2. `--help` returned exit code 2 instead of 0
+- All issues have been resolved in commits `af3027b` and `44dd719`
 
 ### Expected Results
 All 33 tests should pass:

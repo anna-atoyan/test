@@ -931,3 +931,178 @@ def test_output_csv_structure(input_csv, output_csv):
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# Min-count filtering tests
+
+def test_min_count_filters_correctly(input_csv, output_csv):
+    """Test that --min-count filters groups correctly."""
+    write_csv(input_csv, [
+        # Group 1: count 3
+        {
+            "timestamp": "2025-01-31T10:00:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Request received"
+        },
+        {
+            "timestamp": "2025-01-31T10:01:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Request received"
+        },
+        {
+            "timestamp": "2025-01-31T10:02:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Request received"
+        },
+        # Group 2: count 2
+        {
+            "timestamp": "2025-01-31T10:03:00Z",
+            "level": "WARN",
+            "service": "cache",
+            "message": "Cache miss"
+        },
+        {
+            "timestamp": "2025-01-31T10:04:00Z",
+            "level": "WARN",
+            "service": "cache",
+            "message": "Cache miss"
+        },
+        # Group 3: count 1
+        {
+            "timestamp": "2025-01-31T10:05:00Z",
+            "level": "ERROR",
+            "service": "db",
+            "message": "Connection failed"
+        }
+    ], ["timestamp", "level", "service", "message"])
+
+    # With --min-count 2, should only include groups with count >= 2
+    exit_code, _, _ = run_logsum(input_csv, output_csv, extra_args=["--min-count", "2"])
+    assert exit_code == 0
+
+    rows = read_csv_rows(output_csv)
+    assert len(rows) == 2
+
+    # Should include group 1 (count 3) and group 2 (count 2)
+    # Should exclude group 3 (count 1)
+    counts = [int(r["count"]) for r in rows]
+    assert 3 in counts
+    assert 2 in counts
+    assert 1 not in counts
+
+
+def test_min_count_default_behavior_unchanged(input_csv, output_csv):
+    """Test that default behavior (no --min-count) includes all groups."""
+    write_csv(input_csv, [
+        {
+            "timestamp": "2025-01-31T10:00:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event 1"
+        },
+        {
+            "timestamp": "2025-01-31T10:01:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event 1"
+        },
+        {
+            "timestamp": "2025-01-31T10:02:00Z",
+            "level": "ERROR",
+            "service": "db",
+            "message": "Event 2"
+        }
+    ], ["timestamp", "level", "service", "message"])
+
+    # Without --min-count, all groups should be included
+    exit_code, _, _ = run_logsum(input_csv, output_csv)
+    assert exit_code == 0
+
+    rows = read_csv_rows(output_csv)
+    assert len(rows) == 2  # Both groups included
+
+    counts = [int(r["count"]) for r in rows]
+    assert 2 in counts  # Group 1
+    assert 1 in counts  # Group 2
+
+
+def test_min_count_with_zero(input_csv, output_csv):
+    """Test that --min-count 0 includes all groups."""
+    write_csv(input_csv, [
+        {
+            "timestamp": "2025-01-31T10:00:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event"
+        }
+    ], ["timestamp", "level", "service", "message"])
+
+    exit_code, _, _ = run_logsum(input_csv, output_csv, extra_args=["--min-count", "0"])
+    assert exit_code == 0
+
+    rows = read_csv_rows(output_csv)
+    assert len(rows) == 1  # Group with count 1 included
+
+
+def test_min_count_higher_than_all_counts(input_csv, output_csv):
+    """Test that --min-count higher than all counts produces header-only output."""
+    write_csv(input_csv, [
+        {
+            "timestamp": "2025-01-31T10:00:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event 1"
+        },
+        {
+            "timestamp": "2025-01-31T10:01:00Z",
+            "level": "ERROR",
+            "service": "db",
+            "message": "Event 2"
+        }
+    ], ["timestamp", "level", "service", "message"])
+
+    # --min-count 10 should exclude all groups (max count is 1)
+    exit_code, _, _ = run_logsum(input_csv, output_csv, extra_args=["--min-count", "10"])
+    assert exit_code == 0
+
+    rows = read_csv_rows(output_csv)
+    assert len(rows) == 0  # No groups meet threshold
+
+    # Verify header exists
+    with open(output_csv, 'r', encoding='utf-8') as f:
+        header = f.readline().strip()
+        assert header == "level,service,message,count,first_seen,last_seen"
+
+
+def test_min_count_with_one(input_csv, output_csv):
+    """Test that --min-count 1 includes all groups."""
+    write_csv(input_csv, [
+        {
+            "timestamp": "2025-01-31T10:00:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event 1"
+        },
+        {
+            "timestamp": "2025-01-31T10:01:00Z",
+            "level": "INFO",
+            "service": "api",
+            "message": "Event 1"
+        },
+        {
+            "timestamp": "2025-01-31T10:02:00Z",
+            "level": "ERROR",
+            "service": "db",
+            "message": "Event 2"
+        }
+    ], ["timestamp", "level", "service", "message"])
+
+    # --min-count 1 should include all groups
+    exit_code, _, _ = run_logsum(input_csv, output_csv, extra_args=["--min-count", "1"])
+    assert exit_code == 0
+
+    rows = read_csv_rows(output_csv)
+    assert len(rows) == 2  # Both groups included (counts 2 and 1)

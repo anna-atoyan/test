@@ -178,6 +178,7 @@ Supported flags:
 | --- | --- | --- | --- |
 | `--input <path>` | No | `events.csv` | Path to the input CSV file. |
 | `--output <path>` | No | `summary.csv` | Path to the output CSV file. |
+| `--min-count N` | No | none | Only output groups whose count is >= N. If not set, all groups are included. |
 | `--help` | No | n/a | Print usage information and exit. |
 | `--version` | No | n/a | Print CLI version and exit. |
 
@@ -191,6 +192,26 @@ Exit codes:
 | `3` | Invalid CSV structure, such as rows with the wrong number of columns or a non-empty file with an incorrect header. |
 
 Warnings, such as skipped malformed timestamps, are written to stderr but do not change the exit code unless another error condition occurs.
+
+### Examples
+
+Basic usage with default files:
+
+```sh
+logsum --input events.csv --output summary.csv
+```
+
+Filter to show only groups that occurred at least 5 times:
+
+```sh
+logsum --input events.csv --output summary.csv --min-count 5
+```
+
+Show only frequently occurring errors (count >= 10):
+
+```sh
+logsum --input production.csv --output frequent-errors.csv --min-count 10
+```
 
 ## Out of scope
 

@@ -220,6 +220,9 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
     try:
         return parser.parse_args(argv)
     except SystemExit as e:
+        # --help and -h exit with code 0, re-raise to preserve exit code
+        if e.code == 0:
+            raise
         raise CliUsageError from e
 
 
@@ -250,6 +253,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     try:
         ns = _parse_args(argv)
+    except SystemExit as e:
+        # --help exits with code 0
+        return e.code if e.code is not None else 0
     except CliUsageError:
         return 2
 

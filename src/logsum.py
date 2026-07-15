@@ -154,18 +154,15 @@ def _parse_events(contents: str) -> Tuple[List[Tuple[str, str, str, datetime]], 
     return valid, skipped_bad_ts
 
 
-def summarise_events(contents: str) -> Tuple[List[List[str]], int]:
-    """Produce output CSV rows including header.
+def _create_event_groups(events: List[Tuple[str, str, str, datetime]]) -> Dict[Tuple[str, str, str], GroupAgg]:
+    """Group events by (level, service, message) and aggregate their data.
 
-    Returns (rows, skipped_bad_timestamp_count).
+    Args:
+        events: List of parsed events containing (level, service, message, timestamp_utc)
+
+    Returns:
+        Dictionary mapping event keys to their aggregated data
     """
-    if _is_effectively_empty(contents):
-        return [OUTPUT_HEADER], 0
-
-    events, skipped_bad_ts = _parse_events(contents)
-    if not events:
-        return [OUTPUT_HEADER], skipped_bad_ts
-
     groups: Dict[Tuple[str, str, str], GroupAgg] = {}
     for level, service, message, ts_utc in events:
         key = (level, service, message)
@@ -174,10 +171,25 @@ def summarise_events(contents: str) -> Tuple[List[List[str]], int]:
             agg = GroupAgg(level=level, service=service, message=message)
             groups[key] = agg
         agg.update(ts_utc)
+    return groups
 
+
+def _convert_groups_to_rows(groups: Dict[Tuple[str, str, str], GroupAgg], min_count: Optional[int] = None) -> List[List[str]]:
+    """Convert grouped aggregations into sorted CSV output rows.
+
+    Args:
+        groups: Dictionary of aggregated event data
+        min_count: If provided, only include groups with count >= min_count
+
+    Returns:
+        List of CSV rows with header, sorted by (level, service, message)
+    """
     rows: List[List[str]] = [OUTPUT_HEADER]
     for key in sorted(groups.keys()):
         agg = groups[key]
+        # Apply min_count filter if specified
+        if min_count is not None and agg.count < min_count:
+            continue
         # Non-None because group created only after at least one valid row
         rows.append(
             [
@@ -189,6 +201,27 @@ def summarise_events(contents: str) -> Tuple[List[List[str]], int]:
                 _format_utc_iso(agg.last_seen),  # type: ignore[arg-type]
             ]
         )
+    return rows
+
+
+def summarise_events(contents: str, min_count: Optional[int] = None) -> Tuple[List[List[str]], int]:
+    """Produce output CSV rows including header.
+
+    Args:
+        contents: Input CSV contents
+        min_count: If provided, only include groups with count >= min_count
+
+    Returns (rows, skipped_bad_timestamp_count).
+    """
+    if _is_effectively_empty(contents):
+        return [OUTPUT_HEADER], 0
+
+    events, skipped_bad_ts = _parse_events(contents)
+    if not events:
+        return [OUTPUT_HEADER], skipped_bad_ts
+
+    groups = _create_event_groups(events)
+    rows = _convert_groups_to_rows(groups, min_count)
 
     return rows, skipped_bad_ts
 
@@ -197,6 +230,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="logsum")
     p.add_argument("--input", default="events.csv", help="Path to the input CSV file.")
     p.add_argument("--output", default="summary.csv", help="Path to the output CSV file.")
+    p.add_argument(
+        "--min-count",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Only output groups with count >= N. If not set, all groups are included.",
+    )
     p.add_argument("--version", action="store_true", help="Print CLI version and exit.")
     return p
 
@@ -213,6 +253,7 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         return argparse.Namespace(
             input=argv[0],
             output=argv[1] if len(argv) == 2 else "summary.csv",
+            min_count=None,
             version=False,
         )
 
@@ -226,13 +267,13 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         raise CliUsageError from e
 
 
-def run(input_path: Path, output_path: Path) -> int:
+def run(input_path: Path, output_path: Path, min_count: Optional[int] = None) -> int:
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
     contents = _read_text_file(input_path)
 
-    rows, skipped_bad_ts = summarise_events(contents)
+    rows, skipped_bad_ts = summarise_events(contents, min_count)
     _write_csv(output_path, rows)
 
     if skipped_bad_ts:
@@ -260,7 +301,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
 
     try:
-        return run(Path(ns.input), Path(ns.output))
+        return run(Path(ns.input), Path(ns.output), ns.min_count)
     except CsvStructureError as e:
         print(str(e), file=sys.stderr)
         return 3

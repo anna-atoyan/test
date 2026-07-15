@@ -1,0 +1,6 @@
+timestamp,level,service,message
+2025-01-31T14:03:22Z,ERROR,api,Valid event
+not-a-valid-timestamp,WARN,api,Invalid timestamp
+2025-13-45T99:99:99Z,ERROR,db,Another invalid
+2025-01-31T14:03:23Z,INFO,api,Another valid event
+invalid-date-format,ERROR,api,Also invalid

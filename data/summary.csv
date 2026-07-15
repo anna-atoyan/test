@@ -1,0 +1,4 @@
+level,service,message,count,first_seen,last_seen
+INFO,api,Started,2,2025-01-31T14:03:22Z,2025-01-31T14:05:22Z
+UNKNOWN,billing,Payment received,1,2025-01-31T14:06:00Z,2025-01-31T14:06:00Z
+WARN,api,"Disk, almost full",1,2025-01-31T14:10:00Z,2025-01-31T14:10:00Z

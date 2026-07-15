@@ -1,0 +1,7 @@
+timestamp,level,service,message
+2025-01-31T20:00:00Z,WARN,db,Slow query
+2025-01-31T15:00:00Z,ERROR,api,Timeout
+2025-01-31T14:00:00Z,ERROR,api,Connection failed
+2025-01-31T16:00:00Z,ERROR,db,Connection failed
+2025-01-31T10:00:00Z,INFO,api,Started
+2025-01-31T12:00:00Z,UNKNOWN,cache,Miss

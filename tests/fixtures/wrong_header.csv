@@ -1,0 +1,2 @@
+time,severity,component,msg
+2025-01-31T14:03:22Z,ERROR,api,Wrong header

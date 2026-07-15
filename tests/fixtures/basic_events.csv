@@ -1,0 +1,6 @@
+timestamp,level,service,message
+2025-01-31T14:03:22Z,ERROR,api,Connection failed
+2025-01-31T14:03:23Z,ERROR,api,Connection failed
+2025-01-31T14:03:24Z,WARN,api,High latency
+2025-01-31T14:03:25Z,INFO,db,Query completed
+2025-01-31T14:03:26Z,ERROR,db,Deadlock detected
